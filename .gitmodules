@@ -1,3 +1,6 @@
 [submodule "external/The-Forge"]
 	path = external/The-Forge
 	url = git@github.com:OSS-Cosmic/The-Forge.git
+[submodule "glTF-Sample-Assets"]
+	path = glTF-Sample-Assets
+	url = git@github.com:KhronosGroup/glTF-Sample-Assets.git
