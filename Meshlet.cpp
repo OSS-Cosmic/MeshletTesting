@@ -25,7 +25,10 @@
 // Unit Test for testing transformations using a solar system.
 // Tests the basic mat4 transformations, such as scaling, rotation, and translation.
 
+#include "tinyimageformat_query.h"
 #define MAX_PLANETS 20 // Does not affect test, just for allocating space in uniform block. Must match with shader.
+
+// Define these only in *one* .cc file.
 
 // Interfaces
 #include "Common_3/Application/Interfaces/IApp.h"
@@ -49,7 +52,18 @@
 // Math
 #include "Common_3/Utilities/Math/MathTypes.h"
 
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#include "tiny_gltf.h"
+
 #include "Common_3/Utilities/Interfaces/IMemory.h"
+#include "OffsetAllocator.h"
+
+
+
+struct MeshletEntry {
+    uint32_t materialID;
+};
 
 /// Demo structures
 struct PlanetInfoStruct
@@ -139,6 +153,86 @@ const char* pSkyBoxImageFileNames[] = { "Skybox_right1.tex",  "Skybox_left2.tex"
                                         "Skybox_bottom4.tex", "Skybox_front5.tex", "Skybox_back6.tex" };
 
 FontDrawDesc gFrameTimeDraw;
+
+enum OpaqueGeometry {
+    OPAQUE_POSITION,
+    OPAQUE_NUM
+};
+
+struct GeometryVertexStream {
+  TinyImageFormat format;
+  size_t m_stride;
+  ShaderSemantic m_semantic;
+  Buffer *buffer;
+};
+
+struct GeometryIndexStream {
+  Buffer *buffer;
+};
+
+struct GeometrysetDesc {
+  const char *m_indexStreamName;
+  size_t m_numVertexStreams;
+  struct VertexStreamDesc {
+    const char *m_name;
+    TinyImageFormat m_format;
+  } vertexDesc[16];
+};
+
+struct GeometrySet {
+  OffsetAlloc m_indexAllocator;
+  OffsetAlloc m_vertexAllocator;
+  struct GeometryIndexStream m_indexStream;
+  size_t m_vertexStreamNum;
+  struct GeometryVertexStream m_vertexstream[16];
+
+  GeometryVertexStream *getVertexStream(ShaderSemantic semantic) {
+    
+  }
+
+  GeometrySet() : m_indexAllocator(0), m_vertexAllocator(0) {}
+
+  GeometrySet(size_t allocIndecies, size_t allocVerts,
+              struct GeometrysetDesc *desc)
+      : m_indexAllocator(allocIndecies), 
+        m_vertexAllocator(allocVerts) {
+    m_vertexStreamNum = desc->m_numVertexStreams;
+    for (size_t i = 0; i < desc->m_numVertexStreams; i++) {
+        struct GeometrysetDesc::VertexStreamDesc* vertexDesc = &desc->vertexDesc[i];
+        m_vertexstream[i].format = vertexDesc->m_format;
+        BufferLoadDesc loadDesc = {};
+        const size_t elementStride = TinyImageFormat_BitSizeOfBlock(vertexDesc->m_format) / 8;
+        loadDesc.ppBuffer = &m_vertexstream[i].buffer;
+        loadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_BUFFER_RAW;
+        loadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+        loadDesc.mDesc.mStructStride = elementStride;
+        loadDesc.mDesc.mElementCount = allocVerts;
+        loadDesc.mDesc.mSize = allocVerts * elementStride;
+        loadDesc.mDesc.pName = vertexDesc->m_name;
+        addResource(&loadDesc, NULL);
+    }
+    BufferLoadDesc loadDesc = {};
+    loadDesc.ppBuffer = &m_indexStream.buffer;
+    loadDesc.mDesc.mDescriptors =
+        DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_BUFFER_RAW;
+    loadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    loadDesc.mDesc.mStructStride = sizeof(uint32_t);
+    loadDesc.mDesc.mElementCount = allocIndecies;
+    loadDesc.mDesc.mSize = allocIndecies * sizeof(uint32_t);
+    loadDesc.mDesc.pName = desc->m_indexStreamName;
+    addResource(&loadDesc, nullptr);
+  }
+
+  //struct SubAllocation {
+  //  OffsetAllocator::Allocation vertexAlloc;
+  //  OffsetAllocator::Allocation indexAlloc;
+  //};
+};
+
+GeometrySet opaqueSet = {};
+
+
+void addGeometrySet();
 
 // Generate sky box vertex buffer
 const float gSkyBoxPoints[] = {
@@ -429,9 +523,19 @@ static void generate_complex_mesh()
     tf_free(bufferData);
 }
 
-class Transformations: public IApp
+class MeshletViewer: public IApp
 {
 public:
+    bstring mSceneGLTF;
+
+    MeshletViewer() {
+      for (int i = 0; i < argc; i += 1) {
+        if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) {
+          mSceneGLTF = bdynfromcstr(argv[i + 1]);
+        }
+      }
+    }
+
     bool Init()
     {
         // FILE PATHS
@@ -451,6 +555,39 @@ public:
         // check for init success
         if (!pRenderer)
             return false;
+
+        tinygltf::TinyGLTF loader;
+        tinygltf::Model model;
+        std::string err;
+        std::string warn;
+        if(!loader.LoadASCIIFromFile(&model, &err, &warn, (char*)mSceneGLTF.data)) {
+            printf("failed to load GLTF: %s", (char*)mSceneGLTF.data);
+            if (!warn.empty()) {
+              printf("Warn: %s\n", warn.c_str());
+            }
+
+            if (!err.empty()) {
+              printf("Err: %s\n", err.c_str());
+            }
+            return false;
+        }
+
+        for(auto& meshes: model.meshes) {
+            for(auto& prim: meshes.primitives) {
+                for(auto& attrib: prim.attributes) {
+                    tinygltf::Accessor accessor = model.accessors[attrib.second];
+                    int byteStride = accessor.ByteStride(model.bufferViews[accessor.bufferView]);
+                    auto& bufferView = model.bufferViews[accessor.bufferView];
+                    auto& buffer  = model.buffers[bufferView.buffer];
+                    if(attrib.first.compare("POSITION") == 0) {
+                        ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+                        ASSERT(accessor.type == TINYGLTF_TYPE_VEC3);
+
+                    }
+                }
+            }
+        }
+
 
         if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
         {
@@ -1339,4 +1476,4 @@ public:
         }
     }
 };
-DEFINE_APPLICATION_MAIN(Transformations)
+DEFINE_APPLICATION_MAIN(MeshletViewer)

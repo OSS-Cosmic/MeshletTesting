@@ -1,4 +1,5 @@
 
+
 macro(set_output_dir name dir)
     foreach (OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
         string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIGUPPERCASE)
