@@ -26,12 +26,12 @@
 
 STRUCT(VSInput)
 {
-	DATA(float3, Position1, POSITION);
-	DATA(float3, Normal1,   NORMAL);
-	DATA(float3, Position2, TEXCOORD1);
-	DATA(float3, Normal2,   TEXCOORD3);
-	DATA(float4, Color1,   TEXCOORD0);
-	DATA(float4, Color2,   TEXCOORD2);
+	DATA(float3, Position, POSITION);
+   // DATA(float3, Normal1,   NORMAL);
+   // DATA(float3, Position2, TEXCOORD1);
+   // DATA(float3, Normal2,   TEXCOORD3);
+   // DATA(float4, Color1,   TEXCOORD0);
+   // DATA(float4, Color2,   TEXCOORD2);
 };
 
 STRUCT(VSOutput)
@@ -45,42 +45,42 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID )
     INIT_MAIN;
     VSOutput Out;
 
-#if FT_MULTIVIEW
-    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], Get(toWorld)[InstanceID]);
-#else
-    float4x4 tempMat = mul(Get(mvp), Get(toWorld)[InstanceID]);
-#endif
+//#if FT_MULTIVIEW
+//    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], Get(toWorld)[InstanceID]);
+//#else
+//    float4x4 tempMat = mul(Get(mvp), Get(toWorld)[InstanceID]);
+//#endif
 
-    // interpolate between two mesh key frames
-    float InWeight    = Get(geometry_weight)[InstanceID].x;
-    float3 InPosition = lerp(In.Position1, In.Position2, InWeight);
-    float3 InNormal   = lerp(In.Normal1, In.Normal2, InWeight);
-    float3 InColor    = lerp(In.Color1.xyz, In.Color2.xyz, InWeight);
+ //   // interpolate between two mesh key frames
+ //   float InWeight    = Get(geometry_weight)[InstanceID].x;
+ //   float3 InPosition = lerp(In.Position1, In.Position2, InWeight);
+ //   float3 InNormal   = lerp(In.Normal1, In.Normal2, InWeight);
+ //   float3 InColor    = lerp(In.Color1.xyz, In.Color2.xyz, InWeight);
 
-    Out.Position = mul(tempMat, float4(InPosition, 1.0f));
+ //   Out.Position = mul(tempMat, float4(InPosition, 1.0f));
 
-    float4 normal = normalize(mul(Get(toWorld)[InstanceID], float4(InNormal, 0.0f))); // Assume uniform scaling
-    float4 pos = mul(Get(toWorld)[InstanceID], float4(InPosition, 1.0f));
+ //   float4 normal = normalize(mul(Get(toWorld)[InstanceID], float4(InNormal, 0.0f))); // Assume uniform scaling
+ //   float4 pos = mul(Get(toWorld)[InstanceID], float4(InPosition, 1.0f));
 
-    float lightIntensity = 1.0f;
-    // float quadraticCoeff = 1.2;
-    float ambientCoeff = 0.1;
+ //   float lightIntensity = 1.0f;
+ //   // float quadraticCoeff = 1.2;
+ //   float ambientCoeff = 0.1;
 
-    float3 lightDir;
+ //   float3 lightDir;
 
-    if (Get(color)[InstanceID].w < 0.01) // Special case for Sun, so that it is lit from its top
-        lightDir = float3(0.0f, 1.0f, 0.0f);
-    else
-        lightDir = normalize(Get(lightPosition) - pos.xyz);
+ //   if (Get(color)[InstanceID].w < 0.01) // Special case for Sun, so that it is lit from its top
+ //       lightDir = float3(0.0f, 1.0f, 0.0f);
+ //   else
+ //       lightDir = normalize(Get(lightPosition) - pos.xyz);
 
-    // float distance = length(lightDir);
-    // float attenuation = 1.0 / (quadraticCoeff * distance * distance);
-    // float intensity = lightIntensity * attenuation;
+ //   // float distance = length(lightDir);
+ //   // float attenuation = 1.0 / (quadraticCoeff * distance * distance);
+ //   // float intensity = lightIntensity * attenuation;
 
-    float3 baseColor = (Get(color)[InstanceID].xyz + InColor) / 2.0;
-    float3 blendedColor = (Get(lightColor) * baseColor) * lightIntensity;
-    float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
-    float3 ambient = baseColor * ambientCoeff;
-    Out.Color = float4(diffuse + ambient, 1.0);
+ //   float3 baseColor = (Get(color)[InstanceID].xyz + InColor) / 2.0;
+ //   float3 blendedColor = (Get(lightColor) * baseColor) * lightIntensity;
+ //   float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
+ //   float3 ambient = baseColor * ambientCoeff;
+    //Out.Color = float4(diffuse + ambient, 1.0);
     RETURN(Out);
 }

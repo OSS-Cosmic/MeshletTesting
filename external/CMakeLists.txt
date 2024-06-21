@@ -96,9 +96,10 @@ target_include_directories(tinyimageformat INTERFACE
 #add_library(ozz-animation STATIC ${OZZ_ANIMATION_SOURCES})
 #target_include_directories(ozz-animation PUBLIC ${THE_FORGE_DIR}/Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include)
 
-#file(GLOB MESH_OPTIMIZER_SOURCES ${THE_FORGE_DIR}/Common_3/Resources/ResourceLoader/ThirdParty/OpenSource/meshoptimizer/src/*.cpp)
-#add_library(meshoptimizer STATIC ${MESH_OPTIMIZER_SOURCES})
-#target_include_directories(meshoptimizer PUBLIC ${THE_FORGE_DIR}/Common_3/Resources/ResourceLoader/ThirdParty/OpenSource/meshoptimizer/src)
+
+file(GLOB MESH_OPTIMIZER_SOURCES ${THE_FORGE_DIR}/Common_3/Tools/ThirdParty/OpenSource/meshoptimizer/src/*.cpp)
+add_library(meshoptimizer STATIC ${MESH_OPTIMIZER_SOURCES})
+target_include_directories(meshoptimizer PUBLIC ${THE_FORGE_DIR}/Common_3/Tools/ThirdParty/OpenSource/meshoptimizer/src)
 
 add_library(tinydds INTERFACE)
 target_include_directories(tinydds INTERFACE 
@@ -193,7 +194,7 @@ add_library(TheForge STATIC ${THE_FORGE_SOURCES})
 target_compile_definitions(
     TheForge PRIVATE -DSTB_TRUETYPE_IMPLEMENTATION
 )
-target_link_libraries(TheForge PUBLIC cpu_features imgui cgltf Bstr lz4 zstd_filesystem tinydds tinyimageformat tinyktx)
+target_link_libraries(TheForge PUBLIC cpu_features imgui cgltf Bstr lz4 zstd_filesystem tinydds tinyimageformat tinyktx meshoptimizer)
 target_include_directories(TheForge PUBLIC ${THE_FORGE_DIR})
 
 IF(CMAKE_SYSTEM_NAME MATCHES "Darwin")

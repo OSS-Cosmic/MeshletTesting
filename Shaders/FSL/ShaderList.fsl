@@ -6,11 +6,4 @@
 #include "basic.vert.fsl"
 #end
 
-#frag skybox.frag
-#include "skybox.frag.fsl"
-#end
-
-#vert FT_MULTIVIEW skybox.vert
-#include "skybox.vert.fsl"
-#end
 

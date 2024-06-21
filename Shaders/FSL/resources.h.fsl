@@ -26,34 +26,21 @@
 #define RESOURCES_H
 
 // UPDATE_FREQ_NONE
-RES(Tex2D(float4), RightText, UPDATE_FREQ_NONE, t1, binding = 1);
-RES(Tex2D(float4), LeftText,  UPDATE_FREQ_NONE, t2, binding = 2);
-RES(Tex2D(float4), TopText,   UPDATE_FREQ_NONE, t3, binding = 3);
-RES(Tex2D(float4), BotText,   UPDATE_FREQ_NONE, t4, binding = 4);
-RES(Tex2D(float4), FrontText, UPDATE_FREQ_NONE, t5, binding = 5);
-RES(Tex2D(float4), BackText,  UPDATE_FREQ_NONE, t6, binding = 6);
-RES(SamplerState,  uSampler0, UPDATE_FREQ_NONE, s0, binding = 7);
+STRUCT(MeshletBlock) {
+    DATA(float4x4, toWorld, None);
+    DATA(float4, bounds, None);
+};
 
-// UPDATE_FREQ_PER_FRAME
-#ifndef MAX_PLANETS
-    #define MAX_PLANETS 20
-#endif
+RES(Buffer(MeshletBlock), uniformMeshletBuffer, UPDATE_FREQ_NONE, t0, binding = 0);
+RES(SamplerState,  uSampler0, UPDATE_FREQ_NONE, s0, binding = 1);
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+
+CBUFFER(sceneBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
 #if FT_MULTIVIEW
-    DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
+    DATA(float4x4, vp[VR_MULTIVIEW_COUNT], None);
 #else
-    DATA(float4x4, mvp, None);
-#endif
-#if !defined(SKY_SHADER)
-    DATA(float4x4, toWorld[MAX_PLANETS], None);
-    DATA(float4, color[MAX_PLANETS], None);
-    DATA(float4, geometry_weight[MAX_PLANETS], None);
-
-    // Point Light Information
-    DATA(float3, lightPosition, None);
-    DATA(float3, lightColor, None);
+    DATA(float4x4, vp, None);
 #endif
 };
 
